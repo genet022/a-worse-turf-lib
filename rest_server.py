@@ -1,8 +1,9 @@
 #!/usr/bin/python
 from flask import Flask, jsonify, abort, request, make_response, url_for
+from shapely.geometry import Polygon, mapping
 
 app = Flask(__name__, static_url_path = "")
-    
+
 @app.errorhandler(400)
 def not_found(error):
     return make_response(jsonify( { 'error': 'Bad request' } ), 400)
@@ -11,75 +12,68 @@ def not_found(error):
 def not_found(error):
     return make_response(jsonify( { 'error': 'Not found' } ), 404)
 
-dataset = [
-    {
-        'id': 1,
-        'title': u'Ari',
-        'description': u'dog'
-    },
-    {
-        'id': 2,
-        'title': u'Frazier',
-        'description': u'also dog'
-    }
-]
-
-def make_public_data(data):
-    """Instead of returning data ids, return the full URI that controls the data, so that clients get the URIs ready to be used
-    """
-    new_data = {}
-    for field in data:
-        if field == 'id':
-            new_data['uri'] = url_for('get_data', data_id = data['id'], _external = True)
-        else:
-            new_data[field] = data[field]
-    return new_data
-    
-@app.route('/digitalglobe/genet', methods = ['GET'])
-def get_dataset():
-    return jsonify( { 'dataset': map(make_public_data, dataset) } )
-
-@app.route('/digitalglobe/genet/<int:data_id>', methods = ['GET'])
-def get_data(data_id):
-    data = filter(lambda d: d['id'] == data_id, dataset)
-    if len(data) == 0:
-        abort(404)
-    return jsonify( { 'data': make_public_data(data[0]) } )
-
-@app.route('/digitalglobe/genet', methods = ['POST'])
-def create_data():
-    if not request.json or not 'title' in request.json:
-        abort(400)
-    data = {
-        'id': dataset[-1]['id'] + 1,
-        'title': request.json['title'],
-        'description': request.json.get('description', "")
-    }
-    dataset.append(data)
-    return jsonify( { 'data': make_public_data(data) } ), 201
-
-@app.route('/digitalglobe/genet/<int:data_id>', methods = ['PUT'])
-def update_data(data_id):
-    data = filter(lambda d: d['id'] == data_id, dataset)
-    if len(data) == 0:
-        abort(404)
+@app.route('/digitalglobe/genet/intersection', methods = ['POST'])
+def intersection():
     if not request.json:
         abort(400)
-    if 'title' in request.json and type(request.json['title']) != unicode:
+
+    # Grab list of list of coordinates
+    coords1 = request.json['features'][0]["geometry"]["coordinates"][0]
+    coords2 = request.json['features'][1]["geometry"]["coordinates"][0]
+
+    op1 = []
+    op2 = []
+    # Convert list of list of coordinates to list of tuples
+    for lst in coords1:
+        op1.append(tuple(lst))
+    for lst in coords2:
+        op2.append(tuple(lst))
+
+    poly1 = Polygon(op1)
+    poly2 = Polygon(op2)
+
+    # Calculate intersection of poly1 and poly2
+    intersection = poly1.intersection(poly2)
+    geojson_result = mapping(intersection)
+
+    data = {
+        "operation": "intersection",
+        "result" : geojson_result
+    }
+
+    return jsonify( { 'data': data } ), 201
+
+@app.route('/digitalglobe/genet/union', methods = ['POST'])
+def union():
+    if not request.json:
         abort(400)
-    if 'description' in request.json and type(request.json['description']) is not unicode:
-        abort(400)
-    data[0]['title'] = request.json.get('title', data[0]['title'])
-    data[0]['description'] = request.json.get('description', data[0]['description'])
-    return jsonify( { 'data': make_public_data(data[0]) } )
     
-@app.route('/digitalglobe/genet/<int:data_id>', methods = ['DELETE'])
-def delete_data(data_id):
-    data = filter(lambda d: d['id'] == data_id, dataset)
-    if len(data) == 0:
-        abort(404)
-    dataset.remove(data[0])
-    return jsonify( { 'result': True } )
+    # Grab list of list of coordinates
+    coords1 = request.json['features'][0]["geometry"]["coordinates"][0]
+    coords2 = request.json['features'][1]["geometry"]["coordinates"][0]
+
+    op1 = []
+    op2 = []
+    
+    # Convert list of list of coordinates to list of tuples
+    for lst in coords1:
+        op1.append(tuple(lst))
+    for lst in coords2:
+        op2.append(tuple(lst))
+
+    poly1 = Polygon(op1)
+    poly2 = Polygon(op2)
+
+    # Calculate union of poly1 and poly2
+    union = poly1.union(poly2)
+    geojson_result = mapping(union)
+
+    data = {
+        "operation": "union",
+        "result" : geojson_result
+    }
+
+    return jsonify( { 'data': data } ), 201
     
 if __name__ == '__main__':
     app.run(debug = True)

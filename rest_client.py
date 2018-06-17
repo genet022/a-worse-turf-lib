@@ -1,19 +1,27 @@
 #!/usr/bin/python
 import requests
 import json
+import argparse
 
-url = 'http://localhost:5000/digitalglobe/genet'
-data = { "id": "3", "description": "cat", "title": "Steve"}
-data_json = json.dumps(data)
-
-payload = {"json_payload": data_json}
+intersection_url = 'http://localhost:5000/digitalglobe/genet/intersection'
+union_url = 'http://localhost:5000/digitalglobe/genet/union'
 header = {"Content-Type": "application/json", "Accept": "text/plain"}
 
-response = requests.post(url, data=data_json, headers=header)
-print response.text
-response = requests.get(url)
-print response.text
-response = requests.delete(url + '/3')
-print response.text
-response = requests.get(url)
+parser = argparse.ArgumentParser(prog='rest_client.py', description='Process json file inputs.', usage='%(prog)s <intersection | union> </path/to/geojson/file>')
+parser.add_argument('operation', help='Operation to perform on geojson data')
+parser.add_argument('json_file', help='A file containing 2 geojson objects')
+
+args = parser.parse_args()
+
+with open(args.json_file) as file:
+    data_json = json.load(file)
+
+if args.operation == "intersection":
+    response = requests.post(intersection_url, data=json.dumps(data_json), headers=header)
+elif args.operation == "union":
+    response = requests.post(union_url, data=json.dumps(data_json), headers=header)
+else:
+    print "Invalid operation " + args.operation
+    exit()
+
 print response.text
