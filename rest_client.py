@@ -14,7 +14,11 @@ parser.add_argument('json_file', help='A file containing 2 geojson objects')
 args = parser.parse_args()
 
 with open(args.json_file) as file:
-    data_json = json.load(file)
+    try:
+        data_json = json.load(file)
+    except Exception, exc:
+        print "Not a json file"
+        exit()
 
 if args.operation == "intersection":
     response = requests.post(intersection_url, data=json.dumps(data_json), headers=header)
