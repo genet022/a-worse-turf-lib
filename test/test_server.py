@@ -27,5 +27,5 @@ class ServerTestCase(unittest.TestCase):
 
         self.assertEqual([[1,2], [8,6], [0,0]], get_coords_list(simple_geojson, 0))
 
-if __name == '__main__':
+if __name__ == '__main__':
     unittest.main()
