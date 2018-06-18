@@ -28,9 +28,6 @@ def intersection():
     if not request.json:
         abort(400)
 
-    # Grab list of list of coordinates
-    # coords1 = request.json['features'][0]["geometry"]["coordinates"][0]
-    # coords2 = request.json['features'][1]["geometry"]["coordinates"][0]
     coords1 = get_coords_list(request.json, 0)
     coords2 = get_coords_list(request.json, 1)
 
@@ -56,18 +53,11 @@ def union():
     if not request.json:
         abort(400)
     
-    # Grab list of list of coordinates
-    coords1 = request.json['features'][0]["geometry"]["coordinates"][0]
-    coords2 = request.json['features'][1]["geometry"]["coordinates"][0]
+    coords1 = get_coords_list(request.json, 0)
+    coords2 = get_coords_list(request.json, 1)
 
-    op1 = []
-    op2 = []
-    
-    # Convert list of list of coordinates to list of tuples
-    for lst in coords1:
-        op1.append(tuple(lst))
-    for lst in coords2:
-        op2.append(tuple(lst))
+    op1 = coords_to_tuples_list(coords1)
+    op2 = coords_to_tuples_list(coords2)
 
     poly1 = Polygon(op1)
     poly2 = Polygon(op2)
